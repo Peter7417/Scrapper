@@ -1,24 +1,25 @@
 import requests
 from bs4 import BeautifulSoup
-from googlesearch import search
+from duckduckgo_search import ddg
 
 
 user_search = input("Product search: ")
-matrix = search(user_search + "box online technology store")
-URL = []
-for result in matrix:
-    URL.append(result)
+box_search = user_search + "box co uk"
+search_matrix = ddg(box_search, max_results=5)
 
-page = requests.get(URL[0])
-print(URL[0])
+for response in search_matrix:
+    title = response["title"]
+    if title.find("Box.co.uk") > 0:
+        URL = (response["href"])
+        break
+
+page = requests.get(URL)
 soup = BeautifulSoup(page.content, "html.parser")
-print(soup)
 
 results = soup.find(class_="wrapper")
-print(results)
 job_elements = results.find_all("div", class_="product-list-item")
 job_elements_middle = results.find_all("div", class_="product-list-item middle")
-# print(job_elements)
+
 
 for job_element in job_elements:
     name_element = job_element.find("div", class_="p-list-title-wrapper")
