@@ -4,8 +4,8 @@ from duckduckgo_search import ddg
 
 
 user_search = input("Product search: ")
-box_search = user_search + "box co uk"
-search_matrix = ddg(box_search, max_results=5)
+box_search = user_search + " box co uk"
+search_matrix = ddg(box_search, max_results=15)
 
 for response in search_matrix:
     title = response["title"]
@@ -19,6 +19,7 @@ soup = BeautifulSoup(page.content, "html.parser")
 results = soup.find(class_="wrapper")
 job_elements = results.find_all("div", class_="product-list-item")
 job_elements_middle = results.find_all("div", class_="product-list-item middle")
+job_elements_direct = results.find_all("div", class_="p-wrapper form-wait")
 
 
 for job_element in job_elements:
@@ -44,4 +45,11 @@ for job_element_middle in job_elements_middle:
         print()
 
 
-
+for job_element_direct in job_elements_direct:
+    name_element = job_element_direct.find("h2", class_="p-title-desc")
+    price_element = job_element_direct.find("p", class_="p-price-inc")
+    if price_element is not None:
+        print("Product_name: ", name_element.text.strip())
+        print("Link: ", URL)
+        print("Price: ", price_element.text.strip())
+        print()
