@@ -13,6 +13,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 import re
 
+# Get product price
 def extract_price(text):
     # Look for common currency formats
     price_patterns = [
@@ -31,9 +32,9 @@ def extract_price(text):
 
 
 # Keywords to check stock status
-IN_STOCK_KEYWORDS = ["in stock", "available", "add to cart"]
+IN_STOCK_KEYWORDS = ["in stock", "available", "add to cart", "buy it now"]
 OUT_OF_STOCK_KEYWORDS = ["out of stock", "sold out", "unavailable", "sold", "notify me when available"]
-EXCLUDE_KEYWORDS = ["reddit", "quora", "forum", "blog", "youtube", "pinterest"]
+EXCLUDE_KEYWORDS = ["reddit", "quora", "forum", "blog", "youtube", "pinterest", "zhidao.baidu", "playblackdessert"]
 
 # Capture voice input
 def get_voice_input():
@@ -63,10 +64,13 @@ def open_link(event):
 
 # Perform search and check stock
 def check_stock(query, text_widget, status_label):
+    global stop_search
+    stop_search = False  # Reset flag at start
+
     status_label.config(text="🔄 Searching...", fg="blue")
 
     options = Options()
-    options.add_argument("--headless")
+    #options.add_argument("--headless")
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
     service = Service(ChromeDriverManager().install())
@@ -94,6 +98,11 @@ def check_stock(query, text_widget, status_label):
         text_widget.insert(tk.END, f"\n🔍 Searching for: {query}\n\n")
 
         for i, result in enumerate(results):
+            if stop_search:
+                text_widget.insert(tk.END, "\n🛑 Search stopped by user.\n", "red")
+                status_label.config(text="🛑 Search stopped.", fg="red")
+                break
+
             url = result.get_attribute("href")
             if any(bad in url.lower() for bad in EXCLUDE_KEYWORDS):
                 continue
@@ -109,7 +118,6 @@ def check_stock(query, text_widget, status_label):
             time.sleep(3)
 
             page_text = driver.page_source.lower()
-            # Stock status (prioritize OUT OF STOCK if both are present)
             in_stock_found = any(keyword in page_text for keyword in IN_STOCK_KEYWORDS)
             out_of_stock_found = any(keyword in page_text for keyword in OUT_OF_STOCK_KEYWORDS)
 
@@ -130,18 +138,14 @@ def check_stock(query, text_widget, status_label):
             driver.close()
             driver.switch_to.window(driver.window_handles[0])
 
-        status_label.config(text="✅ Search complete!", fg="green")
-
+        if not stop_search:
+            status_label.config(text="✅ Search complete!", fg="green")
 
     except Exception as e:
         text_widget.insert(tk.END, f"\n❌ Error: {e}\n", "red")
         status_label.config(text="❌ Error occurred", fg="red")
     finally:
         driver.quit()
-
-
-
-# Get product price
 
 
 # GUI setup
@@ -181,6 +185,13 @@ def start_gui():
     text_widget.tag_config("red", foreground="red")
     text_widget.tag_config("orange", foreground="orange")
     text_widget.tag_config("bold", font=("Helvetica", 10, "bold"))
+
+    # define a stop to the GUI
+    def stop_searching():
+        global stop_search
+        stop_search = True
+
+    tk.Button(input_frame, text="Stop Search", command=stop_searching).pack(side=tk.LEFT, padx=5)
 
     # Search functions
     def on_text_search(entry):
